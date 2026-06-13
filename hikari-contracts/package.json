@@ -1,0 +1,17 @@
+{
+  "name": "hikari-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Hikari Soul-Bound Token (SBT) Credentials",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.3"
+  }
+}
