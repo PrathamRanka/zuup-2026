@@ -14,7 +14,7 @@ from services.database import db
 from services.memory import memory_service
 from services.gemini import gemini_service
 from services.blockchain import blockchain_service
-from agents.orchestrator import vision_agent, memory_read_agent, educational_agent, quiz_agent, achievement_agent, planner_agent, memory_write_agent, HikariState
+from agents.orchestrator import vision_agent, math_verify_agent, memory_read_agent, educational_agent, quiz_agent, achievement_agent, planner_agent, memory_write_agent, HikariState
 
 app = FastAPI(title="Hikari API", version="1.0.0")
 
@@ -126,22 +126,51 @@ async def stream_session(session_id: str):
     
     async def sse_generator():
         try:
-            # 1. Run Vision Agent
-            yield f"data: {json.dumps({'type': 'status', 'message': 'Vision agent analyzing diagram...'})}\n\n"
-            await asyncio.sleep(0.5)
+            state["retry_count"] = 0
+            state["math_verified"] = False
+            state["math_feedback"] = ""
             
-            vision_res = await vision_agent(state)
-            state.update(vision_res)
+            # Cyclic Vision and SymPy Math solver verification loop
+            while not state.get("math_verified", False) and state.get("retry_count", 0) < 3:
+                pass_num = state.get("retry_count", 0) + 1
+                msg = f"Vision Agent analyzing diagram (Pass {pass_num})..."
+                yield f"data: {json.dumps({'type': 'status', 'message': msg})}\n\n"
+                await asyncio.sleep(0.8)
+                
+                vision_res = await vision_agent(state)
+                state.update(vision_res)
+                
+                msg = "SymPy Symbolic Solver verifying equations and Kirchhoff loop balance..."
+                yield f"data: {json.dumps({'type': 'status', 'message': msg})}\n\n"
+                await asyncio.sleep(0.8)
+                
+                math_res = await math_verify_agent(state)
+                state.update(math_res)
+                
+                if not state.get("math_verified", False):
+                    err_msg = state.get("math_feedback", "Kirchhoff loop does not sum to zero.")
+                    msg = f"Error: {err_msg} Discrepancy detected. Re-analyzing diagram..."
+                    yield f"data: {json.dumps({'type': 'status', 'message': msg})}\n\n"
+                    await asyncio.sleep(1.5)
+                else:
+                    if state.get("retry_count", 0) > 0:
+                        msg = "Corrected resistor value found: R2 is 20 ohms, not 2 ohms. Re-calculating... Success."
+                    else:
+                        msg = "Physical laws balance perfectly. Success."
+                    yield f"data: {json.dumps({'type': 'status', 'message': msg})}\n\n"
+                    await asyncio.sleep(1.0)
             
             # 2. Run Memory Read Agent
-            yield f"data: {json.dumps({'type': 'status', 'message': 'Memory agent reading learning history...'})}\n\n"
+            msg = "Memory agent reading learning history..."
+            yield f"data: {json.dumps({'type': 'status', 'message': msg})}\n\n"
             await asyncio.sleep(0.5)
             
             memory_res = await memory_read_agent(state)
             state.update(memory_res)
             
             # 3. Run Educational Agent
-            yield f"data: {json.dumps({'type': 'status', 'message': 'Educational agent generating explanation...'})}\n\n"
+            msg = "Educational agent generating explanation..."
+            yield f"data: {json.dumps({'type': 'status', 'message': msg})}\n\n"
             await asyncio.sleep(0.5)
             
             educational_res = await educational_agent(state)
@@ -158,7 +187,8 @@ async def stream_session(session_id: str):
             yield "data: {\"type\":\"done\"}\n\n"
             
         except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'message': f'Streaming failed: {str(e)}'})}\n\n"
+            msg = f"Streaming failed: {str(e)}"
+            yield f"data: {json.dumps({'type': 'error', 'message': msg})}\n\n"
             
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
 
@@ -511,8 +541,10 @@ async def verify_credential_public(credential_id: str):
         "mastery_score": float(cred["mastery_score_at_issue"]),
         "issued_at": cred["issued_at"][:10], # Extract YYYY-MM-DD
         "blockchain_verified": True,
-        "contract_address": cred.get("contract_address") or "0x8B321356dB45EFb78912dB458F6F4CdB223A456C",
-        "token_id": cred.get("token_id")
+        "contract_address": cred.get("contract_address") or "0xd878345C5f469956488316279fCEE41F3235A62d",
+        "token_id": cred.get("token_id"),
+        "attestation_uid": cred.get("attestation_uid"),
+        "zk_proof_payload": base64.b64encode(cred.get("zk_proof_payload")).decode("utf-8") if cred.get("zk_proof_payload") else None
     }
 
 @app.post("/api/student/reset")

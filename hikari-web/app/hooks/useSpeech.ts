@@ -84,6 +84,12 @@ export function useSpeech() {
   }, []);
 
   const startListening = useCallback(() => {
+    // Voice Barge-In: cancel speech synthesis when student starts speaking
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+
     if (!recognitionRef.current) return;
     setTranscript('');
     try {

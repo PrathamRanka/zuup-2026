@@ -137,11 +137,23 @@ class DatabaseManager:
             token_id TEXT,
             transaction_hash TEXT,
             ipfs_metadata_uri TEXT,
+            attestation_uid TEXT UNIQUE,
+            zk_proof_payload BLOB,
             issued_at TEXT DEFAULT CURRENT_TIMESTAMP,
             status TEXT DEFAULT 'pending',
             UNIQUE(student_id, topic_id, credential_type)
         )
         """)
+        
+        # Migrations for existing local databases
+        try:
+            cursor.execute("ALTER TABLE credentials ADD COLUMN attestation_uid TEXT")
+        except Exception:
+            pass
+        try:
+            cursor.execute("ALTER TABLE credentials ADD COLUMN zk_proof_payload BLOB")
+        except Exception:
+            pass
         
         # Create planner state
         cursor.execute("""
@@ -451,14 +463,14 @@ class DatabaseManager:
         conn.close()
         return {"id": credential_id, "status": "pending"}
 
-    def update_credential_blockchain(self, credential_id: str, contract_address: str, token_id: str, tx_hash: str, ipfs_uri: str, status: str = "issued"):
+    def update_credential_blockchain(self, credential_id: str, contract_address: str, token_id: str, tx_hash: str, ipfs_uri: str, status: str = "issued", attestation_uid: str = None, zk_proof: bytes = None):
         conn = self._get_connection()
         cursor = conn.cursor()
         cursor.execute("""
         UPDATE credentials
-        SET contract_address = ?, token_id = ?, transaction_hash = ?, ipfs_metadata_uri = ?, status = ?, issued_at = datetime('now')
+        SET contract_address = ?, token_id = ?, transaction_hash = ?, ipfs_metadata_uri = ?, status = ?, attestation_uid = ?, zk_proof_payload = ?, issued_at = datetime('now')
         WHERE id = ?
-        """, (contract_address, token_id, tx_hash, ipfs_uri, status, credential_id))
+        """, (contract_address, token_id, tx_hash, ipfs_uri, status, attestation_uid, zk_proof, credential_id))
         conn.commit()
         conn.close()
 
