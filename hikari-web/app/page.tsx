@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSpeech } from './hooks/useSpeech';
-import { BookOpen, Award, Compass, RefreshCw, Plus, Wallet } from 'lucide-react';
 
 interface StudentProfile {
   id: string;
@@ -63,8 +62,8 @@ export default function Dashboard() {
 
   const handleAnnounceDashboard = () => {
     if (!profile) return;
-    const completionText = `Welcome back, ${profile.display_name}. Your overall curriculum progress is ${Math.round(profile.progress_percent)} percent. You have earned ${profile.credentials_earned} blockchain credentials. The current recommended topic is ${profile.current_topic}.`;
-    speak(completionText);
+    const announcement = `Classroom dashboard. Student name ${profile.display_name}. Completion is ${Math.round(profile.progress_percent)} percent. Credentials earned ${profile.credentials_earned}. Current recommended topic is ${profile.current_topic}.`;
+    speak(announcement);
   };
 
   const handleSaveWallet = async (e: React.FormEvent) => {
@@ -77,7 +76,7 @@ export default function Dashboard() {
         body: JSON.stringify({ wallet_address: walletInput }),
       });
       if (res.ok) {
-        speak("Wallet address updated successfully");
+        speak("Wallet address updated.");
         fetchData();
       }
     } catch (err) {
@@ -93,7 +92,7 @@ export default function Dashboard() {
     try {
       const res = await fetch('/api/student/reset', { method: 'POST' });
       if (res.ok) {
-        speak("Student learning progress has been reset successfully");
+        speak("Student learning progress has been reset.");
         fetchData();
       }
     } catch (err) {
@@ -105,164 +104,92 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="glass-panel" style={{ textAlign: 'center', padding: '60px' }}>
-        <h2 style={{ color: 'var(--text-secondary)' }}>Loading your learning profile...</h2>
+      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Retrieving classroom records...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {/* Intro Hero with Screen Reader Announcements */}
-      <section className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }} aria-labelledby="welcome-heading">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
+      
+      {/* Student Overview Header */}
+      <section aria-labelledby="profile-heading" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
-          <h1 id="welcome-heading" style={{ margin: 0 }}>Hello, {profile?.display_name}!</h1>
-          <p style={{ margin: '8px 0 0 0' }}>Your autonomous STEM companion is ready. Learn, query, and verify your masteries.</p>
+          <h1 id="profile-heading">{profile?.display_name}</h1>
+          <p style={{ marginTop: '8px' }}>
+            Classroom Node: {profile?.curriculum.toUpperCase()} Curriculum. Overall completion is {Math.round(profile?.progress_percent || 0)}%.
+          </p>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={handleAnnounceDashboard}
-          aria-label="Speak dashboard summary details aloud"
-        >
-          Speak Summary
-        </button>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          <button 
+            className="btn btn-secondary"
+            onClick={handleAnnounceDashboard}
+            aria-label="Announce status summary aloud"
+          >
+            Speak Status
+          </button>
+          <a href="/learn/upload" className="btn btn-primary">
+            Upload Diagram
+          </a>
+        </div>
       </section>
 
-      {/* Stats Grid */}
-      <section className="grid-2" aria-label="Curriculum Progress Statistics">
-        {/* Progress Card */}
-        <article className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Compass style={{ color: 'var(--accent-cyan)' }} aria-hidden="true" />
-            <h2 style={{ margin: 0 }}>Recommended Path</h2>
-          </div>
-          <div>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '4px' }}>CURRENT RECOMMENDED TOPIC</p>
-            <p style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>{profile?.current_topic}</p>
-          </div>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px' }}>
-              <span>Curriculum Completion</span>
-              <span style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>{Math.round(profile?.progress_percent || 0)}%</span>
-            </div>
-            {/* Custom high-contrast progress bar */}
-            <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-              <div 
-                style={{ 
-                  height: '100%', 
-                  width: `${profile?.progress_percent}%`, 
-                  background: 'linear-gradient(to right, var(--accent-cyan), var(--accent-purple))',
-                  borderRadius: '4px'
-                }} 
-              />
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '12px', marginTop: 'auto' }}>
-            <a href="/learn/upload" className="btn btn-primary" style={{ flex: 1 }}>
-              <Plus size={18} />
-              Start New Topic
-            </a>
-          </div>
-        </article>
-
-        {/* Credentials / Wallet Info */}
-        <article className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Award style={{ color: 'var(--accent-purple)' }} aria-hidden="true" />
-            <h2 style={{ margin: 0 }}>Verifiable SBTs</h2>
-          </div>
-          <div style={{ display: 'flex', gap: '24px' }}>
-            <div>
-              <p style={{ fontSize: '2.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>{profile?.credentials_earned}</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Earned Credentials</p>
-            </div>
-            <div>
-              <p style={{ fontSize: '2.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>{profile?.total_sessions}</p>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Completed Sessions</p>
-            </div>
-          </div>
-          
-          {/* Wallet address update for visual credentials */}
-          <form onSubmit={handleSaveWallet} style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label htmlFor="wallet-address-input" style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-              Base L2 Wallet Address (for SBT credentials)
-            </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input 
-                id="wallet-address-input"
-                type="text" 
-                placeholder="0x..." 
-                value={walletInput} 
-                onChange={(e) => setWalletInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid var(--border-glass)',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  color: '#fff',
-                  fontFamily: 'monospace'
-                }}
-              />
-              <button type="submit" className="btn btn-secondary" disabled={isSavingWallet} style={{ padding: '8px 16px' }}>
-                <Wallet size={16} />
-                Save
-              </button>
-            </div>
-          </form>
-        </article>
+      {/* Target Recommendation */}
+      <section aria-labelledby="recommendation-heading" style={{ borderLeft: '4px solid var(--accent-amber)', paddingLeft: '24px' }}>
+        <span style={{ fontSize: '0.875rem', color: 'var(--accent-amber)', fontWeight: 600, display: 'block', letterSpacing: '0.05em', marginBottom: '4px' }}>
+          RECOMMENDED TOPIC
+        </span>
+        <h2 id="recommendation-heading" style={{ margin: 0, fontSize: '1.75rem' }}>{profile?.current_topic}</h2>
+        <p style={{ marginTop: '8px', fontSize: '1.05rem' }}>Next logical prerequisite based on topic mastery scores.</p>
       </section>
 
       {/* Curriculum Mastery List */}
-      <section className="glass-panel" aria-labelledby="topics-heading">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 id="topics-heading" style={{ margin: 0 }}>Curriculum Mastery Checklist</h2>
+      <section aria-labelledby="curriculum-heading" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 id="curriculum-heading" style={{ margin: 0 }}>Curriculum Roadmap</h2>
           <button 
             onClick={handleReset} 
             className="btn btn-secondary" 
             disabled={resetting} 
-            style={{ fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
-            aria-label="Reset all learning curriculum stats"
+            style={{ fontSize: '0.875rem', padding: '8px 16px' }}
+            aria-label="Reset curriculum progress for testing"
           >
-            <RefreshCw size={14} />
             Reset Progress
           </button>
         </div>
+        
         <div className="list-group">
           {topics.map((t) => (
             <div key={t.topic_id} className="list-item">
               <div>
-                <p style={{ fontWeight: 600, color: '#fff', margin: 0 }}>{t.display_name}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
-                  Sessions completed: {t.sessions}
+                <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t.display_name}</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+                  Completed sessions: {t.sessions}
                 </p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div>
-                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Mastery</span>
-                  <p style={{ fontWeight: 700, color: t.mastery_score >= 0.8 ? 'var(--accent-green)' : 'var(--accent-cyan)', margin: 0, textAlign: 'right' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Mastery</span>
+                  <strong style={{ fontSize: '1.1rem', color: t.mastery_score >= 0.8 ? 'var(--accent-green)' : 'var(--text-primary)' }}>
                     {Math.round(t.mastery_score * 100)}%
-                  </p>
+                  </strong>
                 </div>
                 {t.credential_issued ? (
                   <span style={{
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.3)',
-                    color: 'var(--accent-green)',
-                    padding: '4px 8px',
+                    border: '1px solid var(--border-primary)',
+                    color: 'var(--accent-amber)',
+                    padding: '4px 10px',
                     borderRadius: '4px',
                     fontSize: '0.75rem',
-                    fontWeight: 600
+                    fontFamily: 'monospace'
                   }}>
                     SBT MINTED
                   </span>
                 ) : (
                   <span style={{
-                    background: 'rgba(255, 255, 255, 0.03)',
-                    border: '1px solid var(--border-glass)',
                     color: 'var(--text-muted)',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
+                    padding: '4px 10px',
                     fontSize: '0.75rem'
                   }}>
                     UNLOCKED
@@ -272,6 +199,36 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Wallet configuration */}
+      <section aria-labelledby="wallet-heading" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '32px' }}>
+        <h2 id="wallet-heading" style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Blockchain Settlement</h2>
+        <p style={{ fontSize: '0.95rem', marginBottom: '20px' }}>Provide a Base L2 wallet address to receive non-transferable Soul-Bound Token credentials upon course mastery.</p>
+        
+        <form onSubmit={handleSaveWallet} style={{ display: 'flex', gap: '12px' }}>
+          <input 
+            id="wallet-input"
+            type="text" 
+            placeholder="0x..." 
+            value={walletInput} 
+            onChange={(e) => setWalletInput(e.target.value)}
+            aria-label="Base wallet address"
+            style={{
+              flex: 1,
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-primary)',
+              borderRadius: '8px',
+              padding: '12px',
+              color: '#fff',
+              fontFamily: 'monospace',
+              fontSize: '1rem'
+            }}
+          />
+          <button type="submit" className="btn btn-secondary" disabled={isSavingWallet} style={{ padding: '12px 24px' }}>
+            Save Address
+          </button>
+        </form>
       </section>
     </div>
   );

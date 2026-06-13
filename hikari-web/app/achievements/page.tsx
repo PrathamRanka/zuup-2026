@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Award, Calendar, Shield, ExternalLink, RefreshCw } from 'lucide-react';
 import { useSpeech } from '../hooks/useSpeech';
 
 interface Credential {
@@ -42,111 +41,106 @@ export default function Achievements() {
 
   const speakSummary = () => {
     if (credentials.length === 0) {
-      speak("You have not earned any verifiable credentials yet. Complete diagram quizzes with a score of 80 percent or higher to earn credentials.");
+      speak("No credentials earned yet. Master curriculum topics to mint SBTs.");
     } else {
-      speak(`You have earned ${credentials.length} verifiable soul-bound tokens. Your topics include: ${credentials.map(c => c.topic).join(', ')}.`);
+      speak(`You have earned ${credentials.length} credentials. Verified topics are: ${credentials.map(c => c.topic).join(', ')}.`);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="glass-panel" style={{ textAlign: 'center', padding: '60px' }}>
-        <h2 style={{ color: 'var(--text-secondary)' }}>Loading your credentials...</h2>
+      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Retrieving credentials registry...</p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
       
-      {/* Hero Header */}
-      <section className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }} aria-labelledby="achievements-heading">
+      {/* Header section */}
+      <section aria-labelledby="achievements-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
         <div>
-          <h1 id="achievements-heading" style={{ margin: 0 }}>On-Chain Credentials</h1>
-          <p style={{ margin: '8px 0 0 0' }}>Tamper-proof Soul-Bound Tokens (SBTs) representing your verified STEM diagram masteries.</p>
+          <h1 id="achievements-heading">Mastery Credentials</h1>
+          <p style={{ marginTop: '8px' }}>Verifiable, non-transferable learning achievements verified on the Base L2 blockchain.</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={speakSummary} className="btn btn-secondary" aria-label="Speak credentials count summary aloud">
-            Speak Gallery Summary
-          </button>
-        </div>
+        <button onClick={speakSummary} className="btn btn-secondary" aria-label="Announce credentials summary aloud">
+          Speak Summary
+        </button>
       </section>
 
-      {/* Grid of Credentials */}
+      {/* Checklist / Cards */}
       {credentials.length === 0 ? (
-        <section className="glass-panel" style={{ textAlign: 'center', padding: '60px' }}>
-          <Award size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
-          <h2 style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>No Credentials Yet</h2>
-          <p style={{ maxWidth: '400px', margin: '0 auto 20px auto' }}>
-            Earn Soul-Bound Token credentials by demonstrating 80% or higher comprehension scores on topic quizzes.
+        <section style={{ textAlign: 'center', padding: '60px 0', border: '1px dashed var(--border-primary)', borderRadius: '8px' }}>
+          <h2 style={{ color: 'var(--text-secondary)', marginBottom: '12px', fontSize: '1.25rem' }}>Registry Empty</h2>
+          <p style={{ maxWidth: '360px', margin: '0 auto 24px auto', fontSize: '1rem' }}>
+            Complete a circuit learning session and score 80% or higher on the quiz to mint a Soul-Bound Token.
           </p>
-          <a href="/learn/upload" className="btn btn-primary">Start Your First Lesson</a>
+          <a href="/learn/upload" className="btn btn-primary">Start Learning</a>
         </section>
       ) : (
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }} aria-label="Verifiable Credentials List">
+        <section style={{ display: 'flex', flexDirection: 'column', gap: '24px' }} aria-label="Credentials Node Gallery">
           {credentials.map((c) => (
-            <article key={c.id} className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '4px solid var(--accent-cyan)' }}>
-              
-              {/* Badge Heading */}
+            <article 
+              key={c.id} 
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: '8px',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.25rem', margin: '0 0 4px 0', color: '#fff' }}>{c.topic}</h2>
-                  <span style={{ fontSize: '0.75rem', background: 'rgba(6,182,212,0.1)', color: 'var(--accent-cyan)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                    MASTERED
+                  <h2 style={{ fontSize: '1.4rem', margin: 0 }}>{c.topic}</h2>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--accent-amber)', fontFamily: 'monospace', display: 'block', marginTop: '6px' }}>
+                    SBT VERIFIED MINTED
                   </span>
                 </div>
-                <div style={{
-                  background: 'rgba(6,182,212,0.05)',
-                  border: '1px solid var(--border-glass)',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  textAlign: 'center'
-                }}>
+                <div style={{ textAlign: 'right' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>SCORE</span>
-                  <strong style={{ fontSize: '1.2rem', color: 'var(--accent-cyan)' }}>{Math.round(c.mastery_score * 100)}%</strong>
+                  <strong style={{ fontSize: '1.25rem', color: '#fff' }}>{Math.round(c.mastery_score * 100)}%</strong>
                 </div>
               </div>
 
-              {/* Metadata Details */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.875rem', borderTop: '1px solid var(--border-glass)', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.875rem', borderTop: '1px solid var(--border-primary)', paddingTop: '16px', color: 'var(--text-secondary)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Calendar size={14} /> Issued
-                  </span>
-                  <span style={{ color: '#fff' }}>{c.issued_at.slice(0, 10)}</span>
+                  <span>Mint Timestamp</span>
+                  <span>{c.issued_at.slice(0, 10)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Shield size={14} /> Network
-                  </span>
-                  <span style={{ color: '#fff', textTransform: 'capitalize' }}>{c.blockchain.replace('_', ' ')}</span>
+                  <span>Ledger Network</span>
+                  <span style={{ textTransform: 'capitalize' }}>{c.blockchain}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Token ID</span>
-                  <span style={{ color: '#fff', fontFamily: 'monospace' }}>#{c.token_id}</span>
+                  <span>Token Identifier</span>
+                  <span style={{ fontFamily: 'monospace' }}>#{c.token_id}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', wordBreak: 'break-all' }}>
+                  <span>Transaction Hash</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{c.transaction_hash}</span>
                 </div>
               </div>
 
-              {/* Link items */}
-              <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', paddingTop: '8px' }}>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <a 
                   href={c.verify_url} 
                   className="btn btn-primary" 
-                  style={{ flex: 1, padding: '8px 12px', fontSize: '0.875rem' }}
+                  style={{ flex: 1, padding: '8px 16px', fontSize: '0.9rem' }}
                 >
-                  Verify SBT
+                  Verify Certificate
                 </a>
-                
-                {/* Verify on blockchain explorer */}
                 <a 
                   href={`https://sepolia.basescan.org/tx/${c.transaction_hash}`}
                   target="_blank"
                   rel="noreferrer"
                   className="btn btn-secondary"
-                  style={{ padding: '8px 12px' }}
-                  aria-label="Verify transaction on Basescan blockchain explorer"
+                  style={{ padding: '8px 16px', fontSize: '0.9rem' }}
                 >
-                  <ExternalLink size={16} />
+                  Explorer
                 </a>
               </div>
             </article>

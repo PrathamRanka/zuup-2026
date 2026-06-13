@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { CheckCircle2, ShieldAlert, FileText, Calendar, ShieldCheck, Award } from 'lucide-react';
 
 interface VerificationResult {
   valid: boolean;
@@ -32,10 +31,10 @@ export default function VerifyCredential() {
           const data = await res.json();
           setResult(data);
         } else {
-          setError("This credential identifier is invalid or has not been issued yet.");
+          setError("Invalid or unissued credential identifier.");
         }
       } catch (e) {
-        setError("Error connecting to the verification node.");
+        setError("Error connecting to validation authority.");
       } finally {
         setIsLoading(false);
       }
@@ -46,104 +45,99 @@ export default function VerifyCredential() {
 
   if (isLoading) {
     return (
-      <div className="glass-panel" style={{ textAlign: 'center', padding: '60px', maxWidth: '600px', margin: '40px auto' }}>
-        <h2 style={{ color: 'var(--text-secondary)' }}>Querying blockchain verify state...</h2>
+      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Querying blockchain verify state...</p>
       </div>
     );
   }
 
   if (error || !result) {
     return (
-      <div className="glass-panel" style={{ textAlign: 'center', padding: '60px', maxWidth: '600px', margin: '40px auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-        <ShieldAlert size={48} style={{ color: '#ef4444' }} />
-        <h2 style={{ color: '#ef4444', margin: 0 }}>Verification Failed</h2>
+      <div style={{
+        maxWidth: '500px',
+        margin: '40px auto',
+        border: '1px solid var(--border-primary)',
+        borderRadius: '8px',
+        padding: '32px',
+        textAlign: 'center',
+        background: 'var(--bg-secondary)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px'
+      }}>
+        <h2 style={{ color: 'var(--accent-red)', margin: 0 }}>Verification Failed</h2>
         <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{error || "Unknown validation error"}</p>
-        <a href="/" className="btn btn-secondary" style={{ marginTop: '16px' }}>Back to Dashboard</a>
+        <a href="/" className="btn btn-secondary" style={{ marginTop: '16px' }}>Dashboard</a>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '600px', margin: '40px auto' }}>
-      <section className="glass-panel" style={{ display: 'flex', flexDirection: 'column', gap: '24px', position: 'relative', overflow: 'hidden' }} aria-labelledby="certificate-heading">
-        
-        {/* Glow backdrop ribbon */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '6px',
-          background: 'linear-gradient(to right, var(--accent-cyan), var(--accent-purple))'
-        }} />
-
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginTop: '16px' }}>
-          <CheckCircle2 size={48} style={{ color: 'var(--accent-green)' }} />
-          <h1 id="certificate-heading" style={{ fontSize: '1.75rem', color: '#fff', margin: 0 }}>Credential Verified</h1>
-          <p style={{ color: 'var(--accent-cyan)', fontSize: '0.875rem', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShieldCheck size={16} /> SECURED BY BASE L2 SMART CONTRACT
-          </p>
-        </div>
-
-        {/* Certificate Display Area */}
-        <div style={{
-          border: '1px solid var(--border-glass)',
-          borderRadius: '12px',
-          padding: '24px',
-          background: 'rgba(0,0,0,0.15)',
+    <div style={{ maxWidth: '500px', margin: '40px auto' }}>
+      <section 
+        style={{
+          border: '1px solid var(--border-primary)',
+          borderRadius: '8px',
+          padding: '32px',
+          background: 'var(--bg-secondary)',
           display: 'flex',
           flexDirection: 'column',
-          gap: '20px'
-        }}>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipient Student</span>
-            <p style={{ fontSize: '1.25rem', fontWeight: 600, color: '#fff', margin: '4px 0 0 0' }}>{result.student_name}</p>
+          gap: '24px'
+        }}
+        aria-labelledby="certificate-heading"
+      >
+        <div style={{ textAlign: 'center', borderBottom: '1px solid var(--border-primary)', paddingBottom: '20px' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--accent-amber)', fontFamily: 'monospace', fontWeight: 600, letterSpacing: '0.1em' }}>
+            VERIFIABLE CREDENTIAL RECEIPT
+          </span>
+          <h1 id="certificate-heading" style={{ fontSize: '1.5rem', color: '#fff', marginTop: '8px', marginBottom: 0 }}>
+            Mastery Verified
+          </h1>
+        </div>
+
+        {/* Monospace receipt grid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-primary)', paddingBottom: '8px' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>RECIPIENT:</span>
+            <span style={{ color: '#fff', fontWeight: 600 }}>{result.student_name.toUpperCase()}</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '20px' }}>
-            <div style={{ flex: 1 }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>STEM Topic Mastery</span>
-              <p style={{ fontSize: '1.1rem', fontWeight: 500, color: '#fff', margin: '4px 0 0 0' }}>{result.topic}</p>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Score Achieved</span>
-              <p style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--accent-cyan)', margin: '4px 0 0 0', textAlign: 'right' }}>
-                {Math.round(result.mastery_score * 100)}%
-              </p>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-primary)', paddingBottom: '8px' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>TOPIC:</span>
+            <span style={{ color: '#fff', fontWeight: 600 }}>{result.topic.toUpperCase()}</span>
           </div>
 
-          <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', fontSize: '0.875rem' }}>
-            <div style={{ flex: 1 }}>
-              <span style={{ color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                <Calendar size={14} /> Verification Date
-              </span>
-              <p style={{ color: '#fff', margin: 0 }}>{result.issued_at}</p>
-            </div>
-            <div>
-              <span style={{ color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                <Award size={14} /> Token ID
-              </span>
-              <p style={{ color: '#fff', margin: 0, textAlign: 'right', fontFamily: 'monospace' }}>#{result.token_id}</p>
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-primary)', paddingBottom: '8px' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>MASTERY SCORE:</span>
+            <span style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>{Math.round(result.mastery_score * 100)}%</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-primary)', paddingBottom: '8px' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>VERIFY DATE:</span>
+            <span style={{ color: '#fff' }}>{result.issued_at}</span>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed var(--border-primary)', paddingBottom: '8px' }}>
+            <span style={{ color: 'var(--text-secondary)' }}>TOKEN ID:</span>
+            <span style={{ color: '#fff' }}>#{result.token_id}</span>
           </div>
         </div>
 
-        {/* Technical Validation Details */}
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Contract specs */}
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid var(--border-primary)', paddingTop: '20px' }}>
           <p style={{ margin: 0, wordBreak: 'break-all' }}>
-            <strong>Contract Address:</strong> <span style={{ fontFamily: 'monospace' }}>{result.contract_address}</span>
+            <strong>Contract:</strong> {result.contract_address}
           </p>
           <p style={{ margin: 0 }}>
-            <strong>Issuer Node:</strong> Hikari Verification Authority
+            <strong>Ledger:</strong> Base L2 (Sepolia Attestation)
           </p>
           <p style={{ margin: 0 }}>
-            <strong>Status:</strong> Active & non-transferable SBT credential
+            <strong>State:</strong> Non-transferable SBT, Active
           </p>
         </div>
 
         <a href="/" className="btn btn-secondary" style={{ width: '100%', padding: '12px' }}>
-          Go to Dashboard
+          Return to Dashboard
         </a>
       </section>
     </div>

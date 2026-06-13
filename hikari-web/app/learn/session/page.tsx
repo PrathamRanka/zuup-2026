@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useSpeech } from '../../hooks/useSpeech';
-import { Volume2, VolumeX, Mic, Send, HelpCircle, CheckCircle, AlertCircle, ArrowRight, Award, Compass, MessageSquare } from 'lucide-react';
 
 interface Segment {
   segment_id: string;
@@ -21,7 +20,6 @@ interface Question {
 function SessionContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('id');
-  const router = useRouter();
 
   const [statusMessage, setStatusMessage] = useState('Starting session...');
   const [segments, setSegments] = useState<Segment[]>([]);
@@ -69,7 +67,6 @@ function SessionContent() {
     if (nextText) {
       speak(nextText, () => {
         isCurrentlySpeakingRef.current = false;
-        // Small pause between paragraphs
         setTimeout(() => {
           processAudioQueue();
         }, 800);
@@ -106,7 +103,6 @@ function SessionContent() {
           setSegments(prev => {
             if (prev.some(s => s.segment_id === newSeg.segment_id)) return prev;
             const updated = [...prev, newSeg].sort((a, b) => a.order - b.order);
-            // Queue text for TTS readout
             queueAudio(newSeg.text);
             return updated;
           });
@@ -135,15 +131,15 @@ function SessionContent() {
     };
   }, [sessionId]);
 
-  // Handle Voice Input transcription for question input
+  // Handle Voice Input transcription
   useEffect(() => {
     if (transcript && activeStep === 'explaining') {
       setQuestionInput(transcript);
-      speak(`I heard: ${transcript}. Sending question now.`);
+      speak(`Received question: ${transcript}`);
       submitQuestion(transcript);
     } else if (transcript && activeStep === 'quiz') {
       setAnswerInput(transcript);
-      speak(`I heard: ${transcript}. Submitting your answer.`);
+      speak(`Received answer: ${transcript}`);
       submitAnswer(transcript);
     }
   }, [transcript]);
@@ -156,7 +152,6 @@ function SessionContent() {
       setVoiceEnabled(false);
     } else {
       setVoiceEnabled(true);
-      // Read latest segment
       if (segments.length > 0) {
         queueAudio(segments[segments.length - 1].text);
       }
@@ -212,7 +207,7 @@ function SessionContent() {
       }
     } catch (e) {
       console.error(e);
-      speak("Sorry, I could not answer that right now.");
+      speak("Error getting follow-up explanation.");
     } finally {
       setIsAsking(false);
     }
@@ -222,7 +217,7 @@ function SessionContent() {
   const startQuiz = async () => {
     stopSpeaking();
     audioQueueRef.current = [];
-    setStatusMessage('Preparing your quiz questions...');
+    setStatusMessage('Loading quiz questions...');
     setActiveStep('quiz');
 
     try {
@@ -237,11 +232,11 @@ function SessionContent() {
         setCurrentQuestion(data.first_question);
         setStatusMessage('');
         
-        queueAudio(`Quiz started. Question 1 of 3: ${data.first_question.text}`);
+        queueAudio(`Quiz started. Question 1: ${data.first_question.text}`);
       }
     } catch (e) {
       console.error(e);
-      speak("Failed to start the quiz loop.");
+      speak("Failed to start the quiz.");
     }
   };
 
@@ -275,7 +270,7 @@ function SessionContent() {
           setCurrentQuestionIndex(prev => prev + 1);
           setCurrentQuestion(data.next_question);
           setTimeout(() => {
-            queueAudio(`Next question. Question ${currentQuestionIndex + 2}: ${data.next_question.text}`);
+            queueAudio(`Question ${currentQuestionIndex + 2}: ${data.next_question.text}`);
           }, 1500);
         } else {
           setQuizComplete(true);
@@ -289,7 +284,7 @@ function SessionContent() {
     }
   };
 
-  // Load Final Summary & SBT Credential
+  // Load Final Summary
   const loadSummary = async () => {
     setActiveStep('summary');
     stopSpeaking();
@@ -301,13 +296,11 @@ function SessionContent() {
         const data = await res.json();
         setSummaryData(data);
         
-        let completionSpeech = `Quiz completed. You scored ${Math.round(data.quiz_score * 100)} percent. `;
+        let completionSpeech = `Quiz complete. Score ${Math.round(data.quiz_score * 100)} percent. `;
         if (data.credential_issued) {
-          completionSpeech += `Congratulations! You have mastered this concept, and a verifiable Soul-Bound Token has been minted on the Base blockchain network. `;
-        } else {
-          completionSpeech += `Good effort. We recommend reviewing this concept and completing another learning session. `;
+          completionSpeech += `Soul-Bound Token credential minted on Base blockchain. `;
         }
-        completionSpeech += `Your recommended next topic is: ${data.recommended_next}.`;
+        completionSpeech += `Recommended next topic: ${data.recommended_next}.`;
         
         queueAudio(completionSpeech);
       }
@@ -317,114 +310,87 @@ function SessionContent() {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       
-      {/* Session Header Controls */}
-      <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ fontSize: '0.875rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>ACTIVE SESSION</span>
-          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>STEM Diagram Tutor</h1>
+      {/* Title & Speech Toggle */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-primary)', paddingBottom: '16px' }}>
+        <div>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>ACTIVE WORKSPACE</span>
+          <h1 style={{ margin: 0, fontSize: '1.75rem' }}>STEM Classroom</h1>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button 
-            onClick={handleToggleVoice} 
-            className={`btn ${voiceEnabled ? 'btn-secondary' : 'btn-primary'}`}
-            style={{ padding: '8px 16px', borderRadius: '8px' }}
-            aria-label={voiceEnabled ? "Mute audio tutor readout" : "Unmute audio tutor readout"}
-          >
-            {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            {voiceEnabled ? "Mute" : "Unmute"}
-          </button>
-        </div>
+        <button 
+          onClick={handleToggleVoice} 
+          className="btn btn-secondary"
+          style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+          aria-label={voiceEnabled ? "Mute voice readouts" : "Unmute voice readouts"}
+        >
+          {voiceEnabled ? "Mute voice" : "Unmute voice"}
+        </button>
       </div>
 
       {statusMessage && (
-        <div className="glass-panel" style={{ textAlign: 'center', padding: '30px' }}>
-          <div className="pulse-indicator" style={{ display: 'inline-block', padding: '10px 20px', borderRadius: '24px', background: 'rgba(6,182,212,0.1)', color: 'var(--accent-cyan)', fontWeight: 600 }}>
-            {statusMessage}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-amber)' }}>
+          <span className="pulse-indicator" />
+          <span style={{ fontSize: '1rem', fontWeight: 500 }}>{statusMessage}</span>
         </div>
       )}
 
       {/* STEP 1: EXPLAINING VIEW */}
       {activeStep === 'explaining' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <section className="glass-panel" aria-labelledby="lecture-heading" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <h2 id="lecture-heading" style={{ margin: 0, borderBottom: '1px solid var(--border-glass)', paddingBottom: '10px' }}>Diagram Explanation</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          
+          {/* Main Book-like Text */}
+          <section aria-labelledby="explanation-title" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            <h2 id="explanation-title" className="sr-only">Diagram Explanation</h2>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
               {segments.map((seg, i) => (
-                <div key={seg.segment_id} style={{ display: 'flex', gap: '12px' }}>
-                  <div style={{
-                    minWidth: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    background: 'var(--accent-cyan)',
-                    color: 'var(--bg-primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: '0.875rem'
-                  }} aria-hidden="true">
-                    {i + 1}
-                  </div>
-                  <div>
-                    <p style={{ color: '#fff', margin: '0 0 6px 0', fontSize: '1.05rem', lineHeight: 1.6 }}>{seg.text}</p>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      {seg.concept_tags.map(t => (
-                        <span key={t} style={{ fontSize: '0.75rem', background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                <div key={seg.segment_id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>SEGMENT {i + 1}</span>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.25rem', lineHeight: '1.8', margin: 0 }}>{seg.text}</p>
                 </div>
               ))}
 
               {followUpResponses.map((text, i) => (
-                <div key={`f-${i}`} style={{ display: 'flex', gap: '12px', background: 'rgba(6, 182, 212, 0.04)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(6, 182, 212, 0.1)' }}>
-                  <MessageSquare size={20} style={{ color: 'var(--accent-cyan)', marginTop: '4px' }} />
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--accent-cyan)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>FOLLOW-UP EXPLANATION</span>
-                    <p style={{ color: '#fff', margin: 0, fontSize: '1.05rem', lineHeight: 1.6 }}>{text}</p>
-                  </div>
+                <div key={`f-${i}`} style={{ borderLeft: '2px solid var(--accent-amber)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--accent-amber)', fontFamily: 'monospace' }}>ANSWER DETAILS</span>
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.25rem', lineHeight: '1.8', margin: 0 }}>{text}</p>
                 </div>
               ))}
             </div>
 
             {segments.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-glass)', paddingTop: '16px' }}>
-                <button onClick={startQuiz} className="btn btn-primary" style={{ padding: '12px 30px' }} aria-label="Explanation understood. Move forward and start the mastery check quiz.">
-                  Test My Mastery
-                  <ArrowRight size={18} />
+              <div style={{ marginTop: '16px' }}>
+                <button onClick={startQuiz} className="btn btn-primary" style={{ width: '100%', padding: '14px' }}>
+                  Start Mastery Check (Quiz)
                 </button>
               </div>
             )}
           </section>
 
-          <section className="glass-panel" aria-labelledby="query-heading">
-            <h2 id="query-heading" style={{ margin: 0, fontSize: '1.25rem', marginBottom: '12px' }}>Ask a Question</h2>
-            <p style={{ fontSize: '0.9rem', marginBottom: '16px' }}>Have questions about the resistors, battery connections, or Kirchhoff's laws? Speak or type below.</p>
+          {/* Simple Voice query box */}
+          <section aria-labelledby="query-title" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '32px' }}>
+            <h2 id="query-title" style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Voice Query</h2>
+            <p style={{ fontSize: '1rem', marginBottom: '16px' }}>Have questions about the components, loop direction, or current formulas? Speak or type below.</p>
             
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 onClick={isListening ? stopListening : startListening}
-                className={`btn ${isListening ? 'btn-primary pulse-indicator' : 'btn-secondary'}`}
-                style={{ padding: '12px', borderRadius: '8px' }}
-                aria-label={isListening ? "Listening... click to stop capturing voice query." : "Click to speak follow-up question aloud."}
+                className="btn btn-secondary"
+                style={{ padding: '12px 18px' }}
+                aria-label={isListening ? "Listening... click to stop capturing." : "Speak your query aloud."}
               >
-                <Mic size={20} style={{ color: isListening ? '#fff' : 'var(--accent-cyan)' }} />
+                {isListening ? "Listening..." : "Speak"}
               </button>
               <input 
                 type="text" 
-                placeholder="Ask about components, resistance formula..." 
+                placeholder="Ask about resistor loops, Ohm's law, etc." 
                 value={questionInput} 
                 onChange={(e) => setQuestionInput(e.target.value)}
                 style={{
                   flex: 1,
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid var(--border-glass)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-primary)',
                   borderRadius: '8px',
                   padding: '12px',
                   color: '#fff',
@@ -432,80 +398,60 @@ function SessionContent() {
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && submitQuestion()}
               />
-              <button onClick={() => submitQuestion()} className="btn btn-secondary" disabled={isAsking} aria-label="Send text query">
-                <Send size={18} />
+              <button onClick={() => submitQuestion()} className="btn btn-secondary" disabled={isAsking}>
+                Send
               </button>
             </div>
-            {isListening && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', color: 'var(--accent-cyan)' }}>
-                <div className="voice-wave-container">
-                  <div className="voice-bar"></div>
-                  <div className="voice-bar"></div>
-                  <div className="voice-bar"></div>
-                  <div className="voice-bar"></div>
-                  <div className="voice-bar"></div>
-                </div>
-                <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Capturing your voice...</span>
-              </div>
-            )}
           </section>
         </div>
       )}
 
       {/* STEP 2: ACTIVE QUIZ VIEW */}
       {activeStep === 'quiz' && currentQuestion && (
-        <section className="glass-panel" aria-labelledby="quiz-heading" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-glass)', paddingBottom: '12px' }}>
-            <h2 id="quiz-heading" style={{ margin: 0 }}>Active Mastery Check</h2>
-            <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }}>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
-          </div>
-
-          <div style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)', borderRadius: '12px', display: 'flex', gap: '16px' }}>
-            <HelpCircle size={24} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-            <div>
-              <p style={{ fontSize: '1.2rem', fontWeight: 500, color: '#fff', margin: 0, lineHeight: 1.5 }}>
-                {currentQuestion.text}
-              </p>
-            </div>
+        <section aria-labelledby="quiz-heading" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+              QUESTION {currentQuestionIndex + 1} OF {totalQuestions}
+            </span>
+            <h2 id="quiz-heading" style={{ fontSize: '1.75rem', marginTop: '8px', color: '#fff', lineHeight: 1.4 }}>
+              {currentQuestion.text}
+            </h2>
           </div>
 
           {feedbackText && (
             <div style={{
               padding: '16px',
               borderRadius: '8px',
-              background: feedbackText.toLowerCase().includes('correct') ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
-              border: feedbackText.toLowerCase().includes('correct') ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)',
-              color: feedbackText.toLowerCase().includes('correct') ? 'var(--accent-green)' : '#f87171',
-              display: 'flex',
-              gap: '12px'
+              border: '1px solid var(--border-primary)',
+              color: feedbackText.toLowerCase().includes('correct') ? 'var(--accent-green)' : 'var(--accent-red)',
+              fontSize: '1.1rem'
             }}>
-              {feedbackText.toLowerCase().includes('correct') ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-              <p style={{ margin: 0, fontSize: '0.95rem' }}>{feedbackText}</p>
+              <p style={{ margin: 0 }}>{feedbackText}</p>
             </div>
           )}
 
           {!quizComplete && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label htmlFor="quiz-answer-input" style={{ fontSize: '0.875rem', fontWeight: 500 }}>Your Spoken or Typed Answer</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <label htmlFor="answer-input" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Your Answer</label>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   onClick={isListening ? stopListening : startListening}
-                  className={`btn ${isListening ? 'btn-primary pulse-indicator' : 'btn-secondary'}`}
-                  style={{ padding: '12px', borderRadius: '8px' }}
-                  aria-label={isListening ? "Listening... click to submit answer" : "Speak your answer aloud"}
+                  className="btn btn-secondary"
+                  style={{ padding: '12px 18px' }}
+                  aria-label={isListening ? "Listening... click to stop capture" : "Speak answer aloud"}
                 >
-                  <Mic size={20} style={{ color: isListening ? '#fff' : 'var(--accent-cyan)' }} />
+                  {isListening ? "Listening..." : "Speak Answer"}
                 </button>
                 <input 
-                  id="quiz-answer-input"
+                  id="answer-input"
                   type="text" 
-                  placeholder="Speak your answer or type it here..." 
+                  placeholder="Speak or type your answer here..." 
                   value={answerInput} 
                   onChange={(e) => setAnswerInput(e.target.value)}
                   style={{
                     flex: 1,
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid var(--border-glass)',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-primary)',
                     borderRadius: '8px',
                     padding: '12px',
                     color: '#fff',
@@ -513,87 +459,60 @@ function SessionContent() {
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && submitAnswer()}
                 />
-                <button onClick={() => submitAnswer()} className="btn btn-primary" disabled={isAnswering} aria-label="Submit answer">
+                <button onClick={() => submitAnswer()} className="btn btn-primary" disabled={isAnswering}>
                   Submit
                 </button>
               </div>
-              
-              {isListening && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', color: 'var(--accent-cyan)' }}>
-                  <div className="voice-wave-container">
-                    <div className="voice-bar"></div>
-                    <div className="voice-bar"></div>
-                    <div className="voice-bar"></div>
-                    <div className="voice-bar"></div>
-                    <div className="voice-bar"></div>
-                  </div>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Listening to your answer...</span>
-                </div>
-              )}
             </div>
           )}
         </section>
       )}
 
-      {/* STEP 3: SESSION COMPLETE / CREDENTIAL SUMMARY VIEW */}
+      {/* STEP 3: SESSION COMPLETE */}
       {activeStep === 'summary' && summaryData && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
           
-          <section className="glass-panel" aria-labelledby="completion-heading" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px', padding: '40px 24px' }}>
-            <Award size={64} style={{ color: summaryData.credential_issued ? 'var(--accent-cyan)' : 'var(--text-muted)' }} />
-            <div>
-              <h1 id="completion-heading" style={{ fontSize: '2rem', marginBottom: '8px' }}>Session Summary</h1>
-              <p style={{ margin: 0 }}>Concept: {summaryData.key_concepts.join(', ')}</p>
-            </div>
+          <section aria-labelledby="completion-heading" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <h1 id="completion-heading" style={{ fontSize: '2rem' }}>Session Summary</h1>
+            <p>Diagram Type: {summaryData.diagram_type.replace('_', ' ')}</p>
 
-            <div style={{ display: 'flex', gap: '40px', margin: '16px 0' }}>
+            <div style={{ display: 'flex', gap: '48px', borderTop: '1px solid var(--border-primary)', borderBottom: '1px solid var(--border-primary)', padding: '24px 0' }}>
               <div>
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>QUIZ SCORE</span>
                 <p style={{ fontSize: '2.5rem', fontWeight: 700, color: '#fff', margin: 0 }}>
                   {Math.round(summaryData.quiz_score * 100)}%
                 </p>
               </div>
-              <div style={{ borderLeft: '1px solid var(--border-glass)', paddingLeft: '40px' }}>
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>MASTERY VERIFIED</span>
-                <p style={{ fontSize: '1.25rem', fontWeight: 700, color: summaryData.credential_issued ? 'var(--accent-green)' : 'var(--accent-cyan)', marginTop: '8px', margin: 0 }}>
-                  {summaryData.credential_issued ? "SUCCESS (SBT ISSUED)" : "IN PROGRESS"}
+              <div>
+                <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>MINT STATUS</span>
+                <p style={{ fontSize: '1.25rem', fontWeight: 700, color: summaryData.credential_issued ? 'var(--accent-amber)' : 'var(--text-secondary)', marginTop: '8px', margin: 0 }}>
+                  {summaryData.credential_issued ? "SBT MINTED SUCCESSFULLY" : "ADDITIONAL REVIEW RECOMMENDED"}
                 </p>
               </div>
             </div>
 
             {summaryData.credential_issued && (
-              <div style={{
-                background: 'rgba(6,182,212,0.03)',
-                border: '1px solid var(--border-glass)',
-                borderRadius: '12px',
-                padding: '20px',
-                width: '100%',
-                maxWidth: '550px',
-                textAlign: 'left'
-              }}>
-                <span style={{ fontSize: '0.75rem', background: 'var(--accent-cyan)', color: 'var(--bg-primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, display: 'inline-block', marginBottom: '10px' }}>
-                  SOUL-BOUND TOKEN MINT RECEIPT
-                </span>
-                <p style={{ fontSize: '0.9rem', color: '#fff', margin: '0 0 8px 0', wordBreak: 'break-all' }}>
-                  <strong>Contract:</strong> {summaryData.verify_url ? 'HikariSBT (Base Sepolia)' : 'Simulated Client'}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <p style={{ margin: 0 }}>
+                  <strong>Blockchain:</strong> Base Sepolia testnet ledger signature
                 </p>
-                <p style={{ fontSize: '0.9rem', color: '#fff', margin: '0 0 8px 0', wordBreak: 'break-all' }}>
-                  <strong>Transaction:</strong> <span style={{ fontFamily: 'monospace', color: 'var(--accent-cyan)' }}>{summaryData.transaction_hash}</span>
+                <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                  <strong>Txn Hash:</strong> <span style={{ fontFamily: 'monospace' }}>{summaryData.transaction_hash}</span>
                 </p>
-                <a href="/achievements" className="btn btn-secondary" style={{ width: '100%', display: 'inline-flex', padding: '10px', marginTop: '10px' }}>
-                  View Credentials Gallery
+                <p style={{ margin: 0 }}>
+                  <strong>Token ID:</strong> #{summaryData.token_id}
+                </p>
+                <a href="/achievements" className="btn btn-secondary" style={{ marginTop: '16px', display: 'flex', padding: '10px' }}>
+                  View Credentials Node
                 </a>
               </div>
             )}
           </section>
 
-          <section className="glass-panel" aria-labelledby="next-heading" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <Compass size={32} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
-            <div>
-              <h2 id="next-heading" style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 4px 0' }}>Your Next Study Topic</h2>
-              <p style={{ margin: 0, fontSize: '0.95rem', color: '#fff', fontWeight: 500 }}>{summaryData.recommended_next}</p>
-            </div>
-            <a href="/" className="btn btn-primary" style={{ marginLeft: 'auto', padding: '10px 20px' }}>
+          <section aria-labelledby="next-path-heading" style={{ borderLeft: '4px solid var(--border-primary)', paddingLeft: '20px' }}>
+            <h2 id="next-path-heading" style={{ fontSize: '1rem', color: 'var(--text-muted)', margin: '0 0 4px 0' }}>RECOMMENDED PATH</h2>
+            <p style={{ margin: 0, fontSize: '1.2rem', color: '#fff', fontWeight: 600 }}>{summaryData.recommended_next}</p>
+            <a href="/" className="btn btn-primary" style={{ marginTop: '16px', padding: '10px 20px' }}>
               Dashboard
             </a>
           </section>
@@ -606,8 +525,8 @@ function SessionContent() {
 export default function SessionPage() {
   return (
     <React.Suspense fallback={
-      <div className="glass-panel" style={{ textAlign: 'center', padding: '60px' }}>
-        <h2 style={{ color: 'var(--text-secondary)' }}>Loading session details...</h2>
+      <div style={{ textAlign: 'center', padding: '80px 0' }}>
+        <p style={{ color: 'var(--text-secondary)' }}>Loading session...</p>
       </div>
     }>
       <SessionContent />
